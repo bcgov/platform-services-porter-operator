@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: api
+  namespace: openshift-bcgov-porter-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: api
+subjects:
+- kind: ServiceAccount
+  name: porter-operator-controller-manager
+  namespace: openshift-bcgov-porter-operator

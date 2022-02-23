@@ -1,0 +1,15 @@
+---
+# Use the 'create api' subcommand to add watches to this file.
+- version: v1alpha1
+  group: porter.devops.gov.bc.ca
+  kind: TransportServerClaim
+  role: transportserverclaim
+  vars:
+    state: present
+  finalizer:
+    name: porter.devops.gov.bc.ca/finalizer
+    vars:
+      state: absent
+  manageStatus: false
+  reconcilePeriod: 60s
+#+kubebuilder:scaffold:watch

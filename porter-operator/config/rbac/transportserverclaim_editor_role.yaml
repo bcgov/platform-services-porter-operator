@@ -1,0 +1,24 @@
+# permissions for end users to edit transportserverclaims.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: transportserverclaim-editor-role
+rules:
+- apiGroups:
+  - porter.devops.gov.bc.ca
+  resources:
+  - transportserverclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - porter.devops.gov.bc.ca
+  resources:
+  - transportserverclaims/status
+  verbs:
+  - get

@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+    project_type: infra
+  name: system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - args:
+        - --leader-elect
+        - --leader-election-id=porter-operator
+        image: controller:latest
+        name: manager
+        env:
+        - name: ANSIBLE_GATHERING
+          value: explicit
+        - name: PRIMARY_CLUSTER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: porter-operator-secret
+              key: PRIMARY_CLUSTER_NAME
+        - name: PRIMARY_F5_INGRESS_IP
+          valueFrom:
+            secretKeyRef:
+              name: porter-operator-secret
+              key: PRIMARY_F5_INGRESS_IP
+        - name: SECONDARY_CLUSTER_API_HOST
+          valueFrom:
+            secretKeyRef:
+              name: porter-operator-secret
+              key: SECONDARY_CLUSTER_API_HOST
+        - name: SECONDARY_CLUSTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: porter-operator-secret
+              key: SECONDARY_CLUSTER_API_KEY
+        - name: SECONDARY_CLUSTER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: porter-operator-secret
+              key: SECONDARY_CLUSTER_NAME
+        - name: SECONDARY_F5_INGRESS_IP
+          valueFrom:
+            secretKeyRef:
+              name: porter-operator-secret
+              key: SECONDARY_F5_INGRESS_IP
+        securityContext:
+          allowPrivilegeEscalation: false
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 6789
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 6789
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      serviceAccountName: controller-manager
+      terminationGracePeriodSeconds: 10

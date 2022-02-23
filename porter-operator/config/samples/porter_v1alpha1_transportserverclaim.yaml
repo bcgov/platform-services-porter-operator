@@ -1,0 +1,12 @@
+apiVersion: porter.devops.gov.bc.ca/v1alpha1
+kind: TransportServerClaim
+metadata:
+  name: postgresql-transport-server
+  namespace: pye-sandbox
+spec:
+  service: postgresql
+  servicePort: 5432
+  monitor:
+    type: tcp
+    interval: 10
+    timeout: 10

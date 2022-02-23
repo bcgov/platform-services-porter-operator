@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+        - name: portmap-api
+          image: api:latest
+          ports:
+            - containerPort: 10000
+              protocol: TCP
+          env:
+          - name: MIN_PORT
+            value: '1024'
+          - name: MAX_PORT
+            value: '65535'

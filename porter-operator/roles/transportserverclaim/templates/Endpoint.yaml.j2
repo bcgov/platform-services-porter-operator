@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: '{{ service }}-{{ cluster_name }}'
+  namespace: {{ ansible_operator_meta.namespace }}
+subsets:
+  - addresses:
+      - ip: {{ f5_ingress_ip }}
+    ports:
+      - port: {{ f5_ingress_port | int }}

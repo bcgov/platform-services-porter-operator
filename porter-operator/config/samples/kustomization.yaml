@@ -1,0 +1,4 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- porter_v1alpha1_transportserverclaim.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

@@ -1,0 +1,9 @@
+---
+# defaults file for TransportServerClaim
+primary_f5_ingress_ip: "{{ lookup('env', 'PRIMARY_F5_INGRESS_IP') }}"
+secondary_f5_ingress_ip: "{{ lookup('env', 'SECONDARY_F5_INGRESS_IP') }}"
+secondary_cluster_api_key: "{{ lookup('env', 'SECONDARY_CLUSTER_API_KEY') }}"
+secondary_cluster_api_host: "{{ lookup('env', 'SECONDARY_CLUSTER_API_HOST') }}"
+primary_cluster_name: "{{ lookup('env', 'PRIMARY_CLUSTER_NAME') }}"
+secondary_cluster_name: "{{ lookup('env', 'SECONDARY_CLUSTER_NAME') }}"
+secondary_cluster_enabled: false

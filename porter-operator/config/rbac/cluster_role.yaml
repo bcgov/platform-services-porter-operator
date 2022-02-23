@@ -1,0 +1,28 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: api
+rules:
+  - verbs:
+      - get
+      - list
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - namespaces
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - watch
+    apiGroups:
+      - ''
+      - cis.f5.com
+    resources:
+      - transportservers
+      - endpoints
+      - services
+      

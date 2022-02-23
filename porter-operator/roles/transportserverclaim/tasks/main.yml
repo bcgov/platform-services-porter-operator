@@ -1,0 +1,133 @@
+---
+# tasks file for TransportServerClaim
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} dump custom resource variables'
+  ansible.builtin.debug:
+    msg: 
+    - 'Name: {{ ansible_operator_meta.name }}'
+    - 'Namespace: {{ ansible_operator_meta.namespace }}'
+    - 'ServicePort: {{ service_port }}'
+    - 'Monitor: {{ monitor }}'
+    verbosity: 3
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} get port if exists'
+  community.kubernetes.k8s_info:
+    api_version: cis.f5.com/v1
+    kind: TransportServer
+    name: '{{ ansible_operator_meta.name }}'
+    namespace: '{{ ansible_operator_meta.namespace }}'
+  register: transport_server
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }}'
+  ansible.builtin.debug:
+    var: transport_server
+    verbosity: 3
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
+  ansible.builtin.set_fact: 
+    f5_ingress_port: '{{ transport_server.resources.0.spec.virtualServerPort }}'
+  when: transport_server.resources | length != 0
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} request new port'
+  block:
+    - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} request port from sidecar'
+      ansible.builtin.uri: 
+        url: http://localhost:10000/claim
+        status_code: 200
+      register: new_port_request
+      
+    - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} request port uri debug'
+      ansible.builtin.debug: 
+        var: new_port_request
+        verbosity: 3
+
+    # new_port_request.json isn't actually json, it's just the key the response goes into..
+    - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
+      ansible.builtin.set_fact: 
+        f5_ingress_port: '{{ new_port_request.json }}'
+  when: transport_server.resources | length == 0
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} show f5_ingress_port'
+  ansible.builtin.debug: 
+    var: f5_ingress_port
+    verbosity: 3
+
+- ansible.builtin.set_fact:
+    secondary_cluster_enabled: true
+  when: 
+    - secondary_cluster_name is defined
+    - secondary_cluster_name != ""
+
+# Using a template due to definition requirements (Can't template integers inline)
+# https://github.com/operator-framework/operator-sdk/issues/1701
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster TransportServer - {{ state }}'
+  vars:
+    f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
+  community.kubernetes.k8s:
+    state: '{{ state }}'
+    definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Endpoint - {{ state }}'
+  vars:
+    cluster_name: '{{ primary_cluster_name }}'
+    f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
+  community.kubernetes.k8s:
+    api_key: '{{ secondary_cluster_api_key }}'
+    host: '{{ secondary_cluster_api_host }}'
+    state: '{{ state }}'
+    definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
+  when: secondary_cluster_enabled
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ state }}'
+  vars:
+    cluster_name: '{{ primary_cluster_name }}'
+  community.kubernetes.k8s:
+    api_key: '{{ secondary_cluster_api_key }}'
+    host: '{{ secondary_cluster_api_host }}'
+    state: '{{ state }}'
+    definition: "{{ lookup('template', 'Service.yaml.j2') }}"
+  when: secondary_cluster_enabled
+
+# BEGIN SECONDARY CLUSTER COMMS CONFIGURATION
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster TransportServer - {{ state }}'
+  vars:
+    f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
+  community.kubernetes.k8s:
+    api_key: '{{ secondary_cluster_api_key }}'
+    host: '{{ secondary_cluster_api_host }}'
+    state: '{{ state }}'
+    definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Endpoint - {{ state }}'
+  vars:
+    cluster_name: '{{ secondary_cluster_name }}'
+    f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
+  community.kubernetes.k8s:
+    state: '{{ state }}'
+    definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
+  when: secondary_cluster_enabled
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ state }}'
+  vars:
+    cluster_name: '{{ secondary_cluster_name }}'
+  community.kubernetes.k8s:
+    state: '{{ state }}'
+    definition: "{{ lookup('template', 'Service.yaml.j2') }}"
+  when: secondary_cluster_enabled
+
+# UPDATE STATUS
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} status update'
+  operator_sdk.util.k8s_status:
+    api_version: porter.devops.gov.bc.ca/v1alpha1
+    kind: TransportServerClaim
+    name: '{{ ansible_operator_meta.name }}'
+    namespace: '{{ ansible_operator_meta.namespace }}'
+    status:
+      address: '{{ primary_f5_ingress_ip }}'
+      port: '{{ f5_ingress_port }}'
+  when: state == 'present'
+
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} relinquish port from sidecar'
+  ansible.builtin.uri: 
+    url: "http://localhost:10000/relinquish?port={{ f5_ingress_port }}"
+    status_code: 200
+  when: state == 'absent'

@@ -1,0 +1,14 @@
+---
+- name: Test
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    secondary_cluster_name: "{{ lookup('env', 'SECONDARY_CLUSTER_NAME') }}"
+  tasks: 
+
+  - set_fact:
+      secondary_cluster_enabled: true
+    when: 
+      - secondary_cluster_name is defined
+      - secondary_cluster_name != ""
