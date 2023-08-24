@@ -96,6 +96,7 @@
     host: '{{ secondary_cluster_api_host }}'
     state: '{{ state }}'
     definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
+  when: secondary_cluster_enabled
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Endpoint - {{ state }}'
   vars:
