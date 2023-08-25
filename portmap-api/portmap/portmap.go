@@ -7,11 +7,17 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type PortMap struct {
 	portMap map[int]bool
 	sync.Mutex
+}
+
+func Logger(logmsg string) {
+    t := time.Now().Format(time.RFC3339)
+    fmt.Println(t,": ",logmsg)
 }
 
 func NewPortMap(min int, max int) *PortMap {
@@ -61,14 +67,18 @@ func (p *PortMap) RelinquishPort(port int) bool {
 func (p *PortMap) PrintClaimedPorts() {
 	for port, taken := range p.portMap {
 		if taken {
-			fmt.Printf("* port: %d - taken: %t\n", port, taken)
+			//fmt.Printf("* port: %d - taken: %t\n", port, taken)
+			logmsg := "* port: " + strconv.Itoa(port) + " - taken: " + strconv.FormatBool(taken)
+			Logger(logmsg)
 		}
 	}
 }
 
 func (p *PortMap) ClaimHandler(w http.ResponseWriter, r *http.Request) {
 	if port, err := p.ClaimUnusedPort(); err == nil {
-		fmt.Printf("* port %d claimed\n", port)
+		//fmt.Printf("* port %d claimed\n", port)
+		logmsg := "* port " + strconv.Itoa(port) + " claimed"
+		Logger(logmsg)
 		json.NewEncoder(w).Encode(port)
 	} else {
 		json.NewEncoder(w).Encode(err)
@@ -84,7 +94,9 @@ func (p *PortMap) RelinquishHandler(w http.ResponseWriter, r *http.Request) {
 
 	if p.portMap[port] {
 		p.portMap[port] = false
-		fmt.Printf("* port %d relinquished\n", port)
+		//fmt.Printf("* port %d relinquished\n", port)
+		logmsg := "* port " + strconv.Itoa(port) + " relinquished"
+		Logger(logmsg)
 		json.NewEncoder(w).Encode(port)
 	}
 }

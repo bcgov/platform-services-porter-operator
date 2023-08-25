@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -22,16 +21,11 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode("Healthy!")
 }
 
-func Logger(logmsg string) {
-	t := time.Now().Format(time.RFC3339)
-	fmt.Println(t,": ",logmsg)
-}
-
 func main() {
 	var logmsg string
 
 	//fmt.Println("Porter Sidecar Starting Up...")
-	Logger("Porter Sidecar Starting Up...")
+	pm.Logger("Porter Sidecar Starting Up...")
 
 	minPort, err := strconv.Atoi(os.Getenv("MIN_PORT"))
 	if err != nil {
@@ -75,26 +69,26 @@ func main() {
 	}
 
 	//fmt.Println("Adding Existing TransportServer VirtualServerPorts to Claimed Ports...")
-	Logger("Adding Existing TransportServer VirtualServerPorts to Claimed Ports...")
+	pm.Logger("Adding Existing TransportServer VirtualServerPorts to Claimed Ports...")
 	for _, ts := range list.Items {
 		virtualServerPort, found, err := unstructured.NestedInt64(ts.Object, "spec", "virtualServerPort")
 		if err != nil || !found {
 			//fmt.Printf("virtualServerPort not found for TransportServer %s: error=%s", ts.GetName(), err)
 			logmsg = "virtualServerPort not found for TransportServer " + ts.GetName() + ": error=" + err.Error()
-			Logger(logmsg)
+			pm.Logger(logmsg)
 			continue
 		}
 
 		if portMap.ClaimPort(int(virtualServerPort)) {
 			//fmt.Printf(" * %s (claimed port: %d)\n", ts.GetName(), virtualServerPort)
-			logmsg = " * " + ts.GetName() + "(claimed port: " + strconv.Itoa(virtualServerPort) + ")"
-			Logger(logmsg)
+			logmsg = " * " + ts.GetName() + "(claimed port: " + strconv.FormatInt(virtualServerPort, 10) + ")"
+			pm.Logger(logmsg)
 			continue
 		}
 
 		//fmt.Printf("unable to claim virtualServerPort: %d", virtualServerPort)
-		logmsg = "unable to claim virtualServerPort: " + strconv.Itoa(virtualServerPort)
-		Logger(logmsg)
+		logmsg = "unable to claim virtualServerPort: " + strconv.FormatInt(virtualServerPort, 10)
+		pm.Logger(logmsg)
 	}
 
 	http.HandleFunc("/", healthz)
