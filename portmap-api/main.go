@@ -80,7 +80,7 @@ func main() {
 		virtualServerPort, found, err := unstructured.NestedInt64(ts.Object, "spec", "virtualServerPort")
 		if err != nil || !found {
 			//fmt.Printf("virtualServerPort not found for TransportServer %s: error=%s", ts.GetName(), err)
-			logmsg = "virtualServerPort not found for TransportServer " + ts.GetName() + ": error=" + err
+			logmsg = "virtualServerPort not found for TransportServer " + ts.GetName() + ": error=" + err.Error()
 			Logger(logmsg)
 			continue
 		}
