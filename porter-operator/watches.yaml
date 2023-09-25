@@ -11,5 +11,4 @@
     vars:
       state: absent
   manageStatus: false
-  reconcilePeriod: 60s
 #+kubebuilder:scaffold:watch
