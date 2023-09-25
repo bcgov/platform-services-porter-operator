@@ -116,16 +116,16 @@
   when: secondary_cluster_enabled
 
 # UPDATE STATUS
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} status update'
-  operator_sdk.util.k8s_status:
-    api_version: porter.devops.gov.bc.ca/v1alpha1
-    kind: TransportServerClaim
-    name: '{{ ansible_operator_meta.name }}'
-    namespace: '{{ ansible_operator_meta.namespace }}'
-    status:
-      address: '{{ primary_f5_ingress_ip }}'
-      port: '{{ f5_ingress_port }}'
-  when: state == 'present'
+#- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} status update'
+#  operator_sdk.util.k8s_status:
+#    api_version: porter.devops.gov.bc.ca/v1alpha1
+#    kind: TransportServerClaim
+#    name: '{{ ansible_operator_meta.name }}'
+#    namespace: '{{ ansible_operator_meta.namespace }}'
+#    status:
+#      address: '{{ primary_f5_ingress_ip }}'
+#      port: '{{ f5_ingress_port }}'
+#  when: state == 'present'
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} relinquish port from sidecar'
   ansible.builtin.uri: 

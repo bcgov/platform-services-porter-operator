@@ -10,5 +10,5 @@
     name: porter.devops.gov.bc.ca/finalizer
     vars:
       state: absent
-  manageStatus: false
+  manageStatus: true
 #+kubebuilder:scaffold:watch
