@@ -10,6 +10,5 @@
     name: porter.devops.gov.bc.ca/finalizer
     vars:
       state: absent
-  manageStatus: false
-  reconcilePeriod: 60s
+  manageStatus: true
 #+kubebuilder:scaffold:watch
