@@ -53,6 +53,7 @@
 
 - ansible.builtin.set_fact:
     secondary_cluster_enabled: true
+    port_count: 1
   when: 
     - secondary_cluster_name is defined
     - secondary_cluster_name != ""
@@ -66,54 +67,93 @@
     state: '{{ state }}'
     definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
 
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Endpoint - {{ state }}'
-  vars:
-    cluster_name: '{{ primary_cluster_name }}'
-    f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
-  community.kubernetes.k8s:
-    api_key: '{{ secondary_cluster_api_key }}'
-    host: '{{ secondary_cluster_api_host }}'
-    state: '{{ state }}'
-    definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
+- name: Secondary cluster setup
   when: secondary_cluster_enabled
+  block:
+  - name: Get Service specs
+    kubernetes.core.k8s_info:
+      api_version: v1
+      kind: Service
+      name: "{{ service }}"
+      namespace: "{{ ansible_operator_meta.namespace }}"
+    register: service_spec
 
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ state }}'
-  vars:
-    cluster_name: '{{ primary_cluster_name }}'
-  community.kubernetes.k8s:
-    api_key: '{{ secondary_cluster_api_key }}'
-    host: '{{ secondary_cluster_api_host }}'
-    state: '{{ state }}'
-    definition: "{{ lookup('template', 'Service.yaml.j2') }}"
-  when: secondary_cluster_enabled
+  - name: Set ports count
+    set_fact:
+      port_count: "{{ service_spec.resources[0].spec.ports | length | int }}"
 
-# BEGIN SECONDARY CLUSTER COMMS CONFIGURATION
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster TransportServer - {{ state }}'
-  vars:
-    f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
-  community.kubernetes.k8s:
-    api_key: '{{ secondary_cluster_api_key }}'
-    host: '{{ secondary_cluster_api_host }}'
-    state: '{{ state }}'
-    definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
-  when: secondary_cluster_enabled
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Endpoint - {{ state }}'
+    vars:
+      cluster_name: '{{ primary_cluster_name }}'
+      f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
+    community.kubernetes.k8s:
+      api_key: '{{ secondary_cluster_api_key }}'
+      host: '{{ secondary_cluster_api_host }}'
+      state: '{{ state }}'
+      definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
 
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Endpoint - {{ state }}'
-  vars:
-    cluster_name: '{{ secondary_cluster_name }}'
-    f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
-  community.kubernetes.k8s:
-    state: '{{ state }}'
-    definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
-  when: secondary_cluster_enabled
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ state }}'
+    vars:
+      cluster_name: '{{ primary_cluster_name }}'
+    community.kubernetes.k8s:
+      api_key: '{{ secondary_cluster_api_key }}'
+      host: '{{ secondary_cluster_api_host }}'
+      state: '{{ state }}'
+      definition: "{{ lookup('template', 'Service.yaml.j2') }}"
 
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ state }}'
-  vars:
-    cluster_name: '{{ secondary_cluster_name }}'
-  community.kubernetes.k8s:
-    state: '{{ state }}'
-    definition: "{{ lookup('template', 'Service.yaml.j2') }}"
-  when: secondary_cluster_enabled
+  # If the target Service has multiple ports configured, there could be two 
+  # TransportServiceClaims pointing to the same Service, but to different ports.
+  # In this case, use a separate template that adds the port number to the name.
+  # This way, both Services will be created, otherwise they will conflict due to
+  # having the same name.
+  # We do this in addition to the original Service template in order to maintain
+  # backwards compatibility - at least for now.
+  # ----------------------------------------------------------------------------
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ state }}'
+    when: port_count | int > 1 
+    vars:
+      cluster_name: '{{ primary_cluster_name }}'
+    community.kubernetes.k8s:
+      api_key: '{{ secondary_cluster_api_key }}'
+      host: '{{ secondary_cluster_api_host }}'
+      state: '{{ state }}'
+      definition: "{{ lookup('template', 'ServiceWithPort.yaml.j2') }}"
+
+  # BEGIN SECONDARY CLUSTER COMMS CONFIGURATION
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster TransportServer - {{ state }}'
+    vars:
+      f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
+    community.kubernetes.k8s:
+      api_key: '{{ secondary_cluster_api_key }}'
+      host: '{{ secondary_cluster_api_host }}'
+      state: '{{ state }}'
+      definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
+
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Endpoint - {{ state }}'
+    vars:
+      cluster_name: '{{ secondary_cluster_name }}'
+      f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
+    community.kubernetes.k8s:
+      state: '{{ state }}'
+      definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
+
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ state }}'
+    vars:
+      cluster_name: '{{ secondary_cluster_name }}'
+    community.kubernetes.k8s:
+      state: '{{ state }}'
+      definition: "{{ lookup('template', 'Service.yaml.j2') }}"
+
+  # As above, create a second Service having the port in the name if the target
+  # Service has more than one port configured.
+  # ---------------------------------------------------------------------------
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ state }}'
+    when: port_count | int > 1
+    vars:
+      cluster_name: '{{ secondary_cluster_name }}'
+    community.kubernetes.k8s:
+      state: '{{ state }}'
+      definition: "{{ lookup('template', 'ServiceWithPort.yaml.j2') }}"
 
 # UPDATE STATUS
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} status update'
