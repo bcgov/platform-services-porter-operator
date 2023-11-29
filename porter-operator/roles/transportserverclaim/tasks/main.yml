@@ -81,6 +81,7 @@
   - name: Set ports count
     set_fact:
       port_count: "{{ service_spec.resources[0].spec.ports | length | int }}"
+    when: service_spec.resources[0] is defined and service_spec.resources[0].spec.ports is defined
 
   - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Endpoint - {{ state }}'
     vars:
