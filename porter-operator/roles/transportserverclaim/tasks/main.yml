@@ -156,7 +156,7 @@
       state: '{{ state }}'
       definition: "{{ lookup('template', 'ServiceWithPort.yaml.j2') }}"
 
-# UPDATE STATUS
+# Update .status
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} status update'
   operator_sdk.util.k8s_status:
     api_version: porter.devops.gov.bc.ca/v1alpha1
