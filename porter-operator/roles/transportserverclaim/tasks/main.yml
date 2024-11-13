@@ -7,6 +7,7 @@
     - 'Namespace: {{ ansible_operator_meta.namespace }}'
     - 'ServicePort: {{ service_port }}'
     - 'Monitor: {{ monitor }}'
+    - 'RequestedPort: {{ requested_port }}'
     #verbosity: 3
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} get port if exists'
