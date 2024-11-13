@@ -1,6 +1,6 @@
 ---
 # tasks file for TransportServerClaim
-ansible.builtin.set_fact:
+- ansible.builtin.set_fact:
   min_port: "{{ lookup('env', 'MIN_PORT') }}"
   max_port: "{{ lookup('env', 'MAX_PORT') }}"
 
