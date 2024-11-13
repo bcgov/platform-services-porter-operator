@@ -7,3 +7,4 @@ secondary_cluster_api_host: "{{ lookup('env', 'SECONDARY_CLUSTER_API_HOST') }}"
 primary_cluster_name: "{{ lookup('env', 'PRIMARY_CLUSTER_NAME') }}"
 secondary_cluster_name: "{{ lookup('env', 'SECONDARY_CLUSTER_NAME') }}"
 secondary_cluster_enabled: false
+use_requested_port: false
