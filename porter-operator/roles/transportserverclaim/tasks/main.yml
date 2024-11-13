@@ -57,12 +57,12 @@
       register: requested_port_check
 
     - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set requested port'
-      when: requested_port_check.rc == 0
+      when: requested_port_check.status == 200
       ansible.builtin.set_fact:
         f5_ingress_port: '{{ requested_port }}'
 
     - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} or deny requested port'
-      when: requested_port_check.rc != 0
+      when: requested_port_check.status != 200
       ansible.builtin.set_fact:
         use_requested_port: false
 
