@@ -7,7 +7,6 @@
     - 'Namespace: {{ ansible_operator_meta.namespace }}'
     - 'ServicePort: {{ service_port }}'
     - 'Monitor: {{ monitor }}'
-    - 'RequestedPort: {{ requested_port }}'
     #verbosity: 3
 
 - name: 'Debugging'
