@@ -10,6 +10,18 @@
     - 'RequestedPort: {{ requested_port }}'
     #verbosity: 3
 
+- name: 'Debugging'
+  ansible.builtin.debug:
+    msg:
+    - 'RequestedPort: {{ spec.requested_port }}'
+  when: spec.requested_port is defined
+
+- name: 'Debugging'
+  ansible.builtin.debug:
+    msg:
+    - 'RequestedPort: {{ requested_port }}'
+  when: requested_port is defined
+
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} get port if exists'
   community.kubernetes.k8s_info:
     api_version: cis.f5.com/v1
