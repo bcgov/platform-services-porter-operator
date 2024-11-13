@@ -1,5 +1,9 @@
 ---
 # tasks file for TransportServerClaim
+ansible.builtin.set_fact:
+  min_port: "{{ lookup('env', 'MIN_PORT') }}"
+  max_port: "{{ lookup('env', 'MAX_PORT') }}"
+
 # Parameters from the 'spec' of the TransportServerClaim are automatically
 #   converted from camelCase to snake_case, e.g. servicePort --> service_port
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} dump custom resource variables'
@@ -9,15 +13,14 @@
     - 'Namespace: {{ ansible_operator_meta.namespace }}'
     - 'ServicePort: {{ service_port }}'
     - 'Monitor: {{ monitor }}'
-    #verbosity: 3
 
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set use_requested_port'
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set use_requested_port if valid'
   when:
     - requested_port is defined
     - requested_port | type_debug == "int"
     - requested_port is regex("^[0-9]+$")
-    - requested_port > lookup('env', 'MIN_PORT')
-    - requested_port < lookup('env', 'MAX_PORT')
+    - requested_port|int > min_port|int
+    - requested_port|int < max_port|int
   ansible.builtin.set_fact:
     use_requested_port: true
 
@@ -32,7 +35,6 @@
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }}'
   ansible.builtin.debug:
     var: transport_server
-    #verbosity: 3
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
   ansible.builtin.set_fact: 
@@ -42,7 +44,7 @@
 # If the TransportServerClaim has .spec.requestedPort set and it passed the
 #   tests above, call the API to confirm that the port is currently available.
 # If it is, set 'f5_ingress_port'.
-# If not, unset 'use_requested_port' and get the port in the normal way.
+# If not, unset 'use_requested_port' and get the port in the default way.
 # ----------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} if available, use requested port'
   when:
