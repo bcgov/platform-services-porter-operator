@@ -144,4 +144,5 @@ func (p *PortMap) PortCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Otherwise, report that the requested port is available
 	fmt.Fprintf(w, "Port %d is available\n", port)
+
 }
