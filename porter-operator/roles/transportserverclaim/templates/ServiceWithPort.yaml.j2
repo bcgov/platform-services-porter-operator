@@ -7,5 +7,5 @@ metadata:
 spec:
   ports:
     - protocol: TCP
-      port: {{ f5_ingress_port | int }}
+      port: {{ tsc_service_port | int }}
       targetPort: {{ f5_ingress_port | int }}
