@@ -88,13 +88,13 @@
 # -----------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Set TSC Service port'
   ansible.builtin.set_fact:
-    tsc_svc_port: f5_ingress_port | int
+    tsc_svc_port: "{{ f5_ingress_port }}"
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Override TSC Service port'
   when:
     - override_service_port
     - override_service_port | type_debug == "bool"
   ansible.builtin.set_fact:
-    tsc_svc_port: service_port | int
+    tsc_svc_port: "{{ service_port }}"
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} show f5_ingress_port'
   ansible.builtin.debug: 
