@@ -1,5 +1,12 @@
 ---
 # tasks file for TransportServerClaim
+- ansible.builtin.set_fact:
+    min_port: "{{ lookup('env', 'MIN_PORT') }}"
+    max_port: "{{ lookup('env', 'MAX_PORT') }}"
+
+# Parameters from the 'spec' of the TransportServerClaim are automatically
+# converted from camelCase to snake_case, e.g. servicePort --> service_port
+# -------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} dump custom resource variables'
   ansible.builtin.debug:
     msg: 
@@ -7,7 +14,19 @@
     - 'Namespace: {{ ansible_operator_meta.namespace }}'
     - 'ServicePort: {{ service_port }}'
     - 'Monitor: {{ monitor }}'
-    verbosity: 3
+
+# If a specific port was requested, make sure it's valid or fall back to default
+# mode
+# ------------------------------------------------------------------------------
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set use_requested_port if valid'
+  when:
+    - requested_port is defined
+    - requested_port | type_debug == "int"
+    - requested_port is regex("^[0-9]+$")
+    - requested_port|int > min_port|int
+    - requested_port|int < max_port|int
+  ansible.builtin.set_fact:
+    use_requested_port: true
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} get port if exists'
   community.kubernetes.k8s_info:
@@ -20,36 +39,75 @@
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }}'
   ansible.builtin.debug:
     var: transport_server
-    verbosity: 3
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
   ansible.builtin.set_fact: 
     f5_ingress_port: '{{ transport_server.resources.0.spec.virtualServerPort }}'
   when: transport_server.resources | length != 0
 
+# If the TransportServerClaim has .spec.requestedPort set and it passed the
+# tests above, call the API to confirm that the port is currently available.
+# If it is, set 'f5_ingress_port'.
+# If not, unset 'use_requested_port' and get the port in the default way.
+#
+# Note: This feature has not been advertised to users, because we have given
+# them the 'overrideServicePort' option.
+# --------------------------------------------------------------------------
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} if available, use requested port'
+  when:
+    - transport_server.resources | length == 0
+    - use_requested_port
+  block:
+    - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} check availability of requested port'
+      ansible.builtin.uri:
+        url: 'http://localhost:10000/isPortAvailable?port={{ requested_port }}'
+      register: requested_port_check
+
+    - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set requested port'
+      when: requested_port_check.status == 200
+      ansible.builtin.set_fact:
+        f5_ingress_port: '{{ requested_port }}'
+
+    - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} or deny requested port'
+      when: requested_port_check.status != 200
+      ansible.builtin.set_fact:
+        use_requested_port: false
+
+# By default, assign a random available port
+# ------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} request new port'
+  when:
+    - transport_server.resources | length == 0
+    - not use_requested_port
   block:
     - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} request port from sidecar'
       ansible.builtin.uri: 
         url: http://localhost:10000/claim
-        status_code: 200
       register: new_port_request
       
-    - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} request port uri debug'
-      ansible.builtin.debug: 
-        var: new_port_request
-        verbosity: 3
-
     # new_port_request.json isn't actually json, it's just the key the response goes into..
     - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
       ansible.builtin.set_fact: 
         f5_ingress_port: '{{ new_port_request.json }}'
-  when: transport_server.resources | length == 0
+
+# If the TSC has '.spec.overrideServicePort: true', then use the port of the 
+# target Service by setting that value to 'tsc_svc_port'.
+# Otherwise, set tsc_svc_port to the same value as f5_ingress_port.
+# --------------------------------------------------------------------------
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Set TSC Service port'
+  ansible.builtin.set_fact:
+    tsc_svc_port: "{{ f5_ingress_port }}"
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Override TSC Service port'
+  when:
+    - override_service_port
+    - override_service_port | type_debug == "bool"
+  ansible.builtin.set_fact:
+    tsc_svc_port: "{{ service_port }}"
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} show f5_ingress_port'
   ansible.builtin.debug: 
     var: f5_ingress_port
-    verbosity: 3
+    #verbosity: 3
 
 - ansible.builtin.set_fact:
     secondary_cluster_enabled: true
@@ -156,7 +214,7 @@
       state: '{{ state }}'
       definition: "{{ lookup('template', 'ServiceWithPort.yaml.j2') }}"
 
-# UPDATE STATUS
+# Update .status
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} status update'
   operator_sdk.util.k8s_status:
     api_version: porter.devops.gov.bc.ca/v1alpha1

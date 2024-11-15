@@ -40,18 +40,6 @@ func main() {
 	fmt.Printf("MIN_PORT: %d - MAX_PORT: %d\n", minPort, maxPort)
 	portMap := pm.NewPortMap(minPort, maxPort)
 
-	// var kubeconfig *string
-	// if home := homedir.HomeDir(); home != "" {
-	// 	kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	// } else {
-	// 	kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	// }
-	// flag.Parse()
-
-	// config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	// if err != nil {
-	// 	panic(err)
-	// }
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err)
@@ -68,25 +56,21 @@ func main() {
 		panic(err)
 	}
 
-	//fmt.Println("Adding Existing TransportServer VirtualServerPorts to Claimed Ports...")
 	pm.Logger("Adding Existing TransportServer VirtualServerPorts to Claimed Ports...")
 	for _, ts := range list.Items {
 		virtualServerPort, found, err := unstructured.NestedInt64(ts.Object, "spec", "virtualServerPort")
 		if err != nil || !found {
-			//fmt.Printf("virtualServerPort not found for TransportServer %s: error=%s", ts.GetName(), err)
 			logmsg = "virtualServerPort not found for TransportServer " + ts.GetName() + ": error=" + err.Error()
 			pm.Logger(logmsg)
 			continue
 		}
 
 		if portMap.ClaimPort(int(virtualServerPort)) {
-			//fmt.Printf(" * %s (claimed port: %d)\n", ts.GetName(), virtualServerPort)
-			logmsg = " * " + ts.GetName() + "(claimed port: " + strconv.FormatInt(virtualServerPort, 10) + ")"
+			logmsg = " " + strconv.FormatInt(virtualServerPort, 10) + " claimed by: " + ts.GetName()
 			pm.Logger(logmsg)
 			continue
 		}
 
-		//fmt.Printf("unable to claim virtualServerPort: %d", virtualServerPort)
 		logmsg = "unable to claim virtualServerPort: " + strconv.FormatInt(virtualServerPort, 10)
 		pm.Logger(logmsg)
 	}
@@ -95,6 +79,7 @@ func main() {
 	http.HandleFunc("/healthz", healthz)
 	http.HandleFunc("/claim", portMap.ClaimHandler)
 	http.HandleFunc("/relinquish", portMap.RelinquishHandler)
+	http.HandleFunc("/isPortAvailable", portMap.PortCheckHandler)
 
 	log.Fatal(http.ListenAndServe(":10000", nil))
 }
