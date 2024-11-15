@@ -6,6 +6,7 @@
 
 # Parameters from the 'spec' of the TransportServerClaim are automatically
 # converted from camelCase to snake_case, e.g. servicePort --> service_port
+# -------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} dump custom resource variables'
   ansible.builtin.debug:
     msg: 
@@ -14,6 +15,9 @@
     - 'ServicePort: {{ service_port }}'
     - 'Monitor: {{ monitor }}'
 
+# If a specific port was requested, make sure it's valid or fall back to default
+# mode
+# ------------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set use_requested_port if valid'
   when:
     - requested_port is defined
@@ -45,7 +49,7 @@
 # tests above, call the API to confirm that the port is currently available.
 # If it is, set 'f5_ingress_port'.
 # If not, unset 'use_requested_port' and get the port in the default way.
-# ----------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} if available, use requested port'
   when:
     - transport_server.resources | length == 0
@@ -83,9 +87,10 @@
       ansible.builtin.set_fact: 
         f5_ingress_port: '{{ new_port_request.json }}'
 
-# Set tsc_svc_port to f5_ingress_port by default, but if overrideServicePort is
-# true, set it to the port of the target Service
-# -----------------------------------------------------------------------------
+# If the TSC has '.spec.overrideServicePort: true', then use the port of the 
+# target Service by setting that value to 'tsc_svc_port'.
+# Otherwise, set tsc_svc_port to the same value as f5_ingress_port.
+# --------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Set TSC Service port'
   ansible.builtin.set_fact:
     tsc_svc_port: "{{ f5_ingress_port }}"

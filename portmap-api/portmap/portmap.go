@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+var (
+	minPort, _ = strconv.Atoi(os.Getenv("MIN_PORT"))
+	maxPort, _ = strconv.Atoi(os.Getenv("MAX_PORT"))
+)
+
 type PortMap struct {
 	portMap map[int]bool
 	sync.Mutex
@@ -129,7 +134,7 @@ func (p *PortMap) PortCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Make sure that it is an integer and in the acceptable range
 	port, err := strconv.Atoi(portRequest)
-	if err != nil || port < minport || port > maxport {
+	if err != nil || port < minPort || port > maxPort {
 		errorMsg := fmt.Sprintf("Invalid port number: %d", port)
 		http.Error(w, errorMsg, http.StatusBadRequest)
 		return
