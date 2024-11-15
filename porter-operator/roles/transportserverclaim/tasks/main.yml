@@ -49,6 +49,9 @@
 # tests above, call the API to confirm that the port is currently available.
 # If it is, set 'f5_ingress_port'.
 # If not, unset 'use_requested_port' and get the port in the default way.
+#
+# Note: This feature has not been advertised to users, because we have given
+# them the 'overrideServicePort' option.
 # --------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} if available, use requested port'
   when:

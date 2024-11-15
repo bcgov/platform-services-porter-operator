@@ -66,7 +66,7 @@ func main() {
 		}
 
 		if portMap.ClaimPort(int(virtualServerPort)) {
-			logmsg = " " + strconv.FormatInt(virtualServerPort, 10) + "claimed by: " + ts.GetName()
+			logmsg = " " + strconv.FormatInt(virtualServerPort, 10) + " claimed by: " + ts.GetName()
 			pm.Logger(logmsg)
 			continue
 		}
