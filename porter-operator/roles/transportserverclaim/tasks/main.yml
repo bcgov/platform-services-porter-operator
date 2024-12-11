@@ -115,6 +115,7 @@
   when: 
     - secondary_cluster_name is defined
     - secondary_cluster_name != ""
+    - not skip_secondary_cluster
 
 # Using a template due to definition requirements (Can't template integers inline)
 # https://github.com/operator-framework/operator-sdk/issues/1701

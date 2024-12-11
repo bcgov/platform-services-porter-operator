@@ -9,3 +9,4 @@ secondary_cluster_name: "{{ lookup('env', 'SECONDARY_CLUSTER_NAME') }}"
 secondary_cluster_enabled: false
 use_requested_port: false
 override_service_port: false
+skip_secondary_cluster: false
