@@ -107,7 +107,7 @@
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} show f5_ingress_port'
   ansible.builtin.debug: 
     var: f5_ingress_port
-    #verbosity: 3
+    verbosity: 3
 
 - ansible.builtin.set_fact:
     secondary_cluster_enabled: true
@@ -116,6 +116,7 @@
     - secondary_cluster_name is defined
     - secondary_cluster_name != ""
     - not skip_secondary_cluster
+    - skip_secondary_cluster | type_debug == "bool"
 
 # Using a template due to definition requirements (Can't template integers inline)
 # https://github.com/operator-framework/operator-sdk/issues/1701
