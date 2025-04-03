@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine as builder
+FROM docker.io/golang:1.16-alpine as builder
 
 RUN mkdir -p /build
 WORKDIR /build
