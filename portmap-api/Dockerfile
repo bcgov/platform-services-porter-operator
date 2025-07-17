@@ -12,7 +12,7 @@ COPY . .
 
 RUN go build -o portmap-api
 
-FROM alpine:latest
+FROM artifacts.developer.gov.bc.ca/docker-remote/alpine:latest
 
 WORKDIR /app
 
