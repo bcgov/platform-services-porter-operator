@@ -1,4 +1,4 @@
-FROM docker.io/golang:1.16-alpine as builder
+FROM artifacts.developer.gov.bc.ca/docker-remote/golang:1.16-alpine as builder
 
 RUN mkdir -p /build
 WORKDIR /build
@@ -12,7 +12,7 @@ COPY . .
 
 RUN go build -o portmap-api
 
-FROM alpine:latest
+FROM artifacts.developer.gov.bc.ca/docker-remote/alpine:latest
 
 WORKDIR /app
 
