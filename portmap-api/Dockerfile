@@ -1,4 +1,4 @@
-FROM artifacts.developer.gov.bc.ca/docker-remote/golang:1.24 as builder
+FROM artifacts.developer.gov.bc.ca/docker-remote/golang:1.24-alpine as builder
 
 RUN mkdir -p /build
 WORKDIR /build
