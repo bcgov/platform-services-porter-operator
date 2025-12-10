@@ -116,8 +116,31 @@
     - secondary_cluster_name is defined
     - secondary_cluster_name != ""
 
-# Using a template due to definition requirements (Can't template integers inline)
-# https://github.com/operator-framework/operator-sdk/issues/1701
+# Check the Service type
+#   If NodePort
+#     - set label "f5cr" to "nodeport"
+#     - use NodePort IP address
+#   If ClusterIP
+#     - set label "f5cr" to "true"
+#     - use legacy IP address
+# ------------------------------------
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} get target Service info'
+  kubernetes.core.k8s_info:
+    kind: Service
+    api_version: v1
+    name: "{{ service }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
+  register: target_service_info
+- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5cr label'
+  ansible.builtin.set_fact:
+    f5cr_label: "{{ (target_service_info.requests[0].spec.type == 'NodePort') | ternary('nodeport', 'true') }}"
+    primary_f5_ingress_ip: "{{ (target_service_info.requests[0].spec.type == 'NodePort') | ternary(primary_f5_ingress_ip_nodeport, primary_f5_ingress_ip) }}"
+    secondary_f5_ingress_ip: "{{ (target_service_info.requests[0].spec.type == 'NodePort') | ternary(secondary_f5_ingress_ip_nodeport, secondary_f5_ingress_ip) }}"
+  
+
+# Create TransportServer
+#   Using a template due to definition requirements (Can't template integers inline)
+#   https://github.com/operator-framework/operator-sdk/issues/1701
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster TransportServer - {{ state }}'
   vars:
     f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
@@ -128,18 +151,10 @@
 - name: Secondary cluster setup
   when: secondary_cluster_enabled
   block:
-  - name: Get Service specs
-    kubernetes.core.k8s_info:
-      api_version: v1
-      kind: Service
-      name: "{{ service }}"
-      namespace: "{{ ansible_operator_meta.namespace }}"
-    register: service_spec
-
   - name: Set ports count
     set_fact:
-      port_count: "{{ service_spec.resources[0].spec.ports | length | int }}"
-    when: service_spec.resources[0] is defined and service_spec.resources[0].spec.ports is defined
+      port_count: "{{ target_service_info.resources[0].spec.ports | length | int }}"
+    when: target_service_info.resources[0] is defined and target_service_info.resources[0].spec.ports is defined
 
   - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Endpoint - {{ state }}'
     vars:
