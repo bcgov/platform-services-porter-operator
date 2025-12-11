@@ -3,7 +3,7 @@ apiVersion: cis.f5.com/v1
 kind: TransportServer
 metadata:
   labels:
-    f5cr: "{{ f5cr_label }}"
+    f5cr: "{{ f5cr_label | lower }}"
   name: {{ ansible_operator_meta.name }}
   namespace: {{ ansible_operator_meta.namespace }}
 spec:
