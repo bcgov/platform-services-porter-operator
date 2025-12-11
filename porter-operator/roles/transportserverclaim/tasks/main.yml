@@ -134,9 +134,9 @@
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5cr label'
   ansible.builtin.set_fact:
-    f5cr_label: "{{ target_service_info.requests[0].spec.type == 'NodePort' | ternary('nodeport', 'true') }}"
-    primary_f5_ingress_ip: "{{ target_service_info.requests[0].spec.type == 'NodePort' | ternary(primary_f5_ingress_ip_nodeport, primary_f5_ingress_ip) }}"
-    secondary_f5_ingress_ip: "{{ target_service_info.requests[0].spec.type == 'NodePort' | ternary(secondary_f5_ingress_ip_nodeport, secondary_f5_ingress_ip) }}"
+    f5cr_label: "{{ (target_service_info.resources[0].spec.type == 'NodePort') | ternary('nodeport', 'true') }}"
+    primary_f5_ingress_ip: "{{ (target_service_info.resources[0].spec.type == 'NodePort') | ternary(primary_f5_ingress_ip_nodeport, primary_f5_ingress_ip) }}"
+    secondary_f5_ingress_ip: "{{ (target_service_info.resources[0].spec.type == 'NodePort') | ternary(secondary_f5_ingress_ip_nodeport, secondary_f5_ingress_ip) }}"
   
 
 # Create TransportServer
