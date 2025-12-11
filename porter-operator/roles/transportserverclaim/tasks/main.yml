@@ -132,9 +132,14 @@
     namespace: '{{ ansible_operator_meta.namespace }}'
   register: target_service_info
 
+# For the 'f5cr' label, 'true' gets converted to 'True' unless we force it
+- name: 'Force true to lower-case string'
+  ansible.builtin.set_fact:
+    f5cr_label_true: !!str true
+
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5cr label'
   ansible.builtin.set_fact:
-    f5cr_label: "{{ (target_service_info.resources[0].spec.type == 'NodePort') | ternary('nodeport', 'true') }}"
+    f5cr_label: "{{ (target_service_info.resources[0].spec.type == 'NodePort') | ternary('nodeport', f5cr_label_true) }}"
     primary_f5_ingress_ip: "{{ (target_service_info.resources[0].spec.type == 'NodePort') | ternary(primary_f5_ingress_ip_nodeport, primary_f5_ingress_ip) }}"
     secondary_f5_ingress_ip: "{{ (target_service_info.resources[0].spec.type == 'NodePort') | ternary(secondary_f5_ingress_ip_nodeport, secondary_f5_ingress_ip) }}"
   
