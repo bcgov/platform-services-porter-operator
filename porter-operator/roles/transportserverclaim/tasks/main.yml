@@ -128,8 +128,8 @@
   kubernetes.core.k8s_info:
     kind: Service
     api_version: v1
-    name: "{{ service }}"
-    namespace: "{{ ansible_operator_meta.namespace }}"
+    name: '{{ service }}'
+    namespace: '{{ ansible_operator_meta.namespace }}'
   register: target_service_info
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5cr label'
   ansible.builtin.set_fact:
