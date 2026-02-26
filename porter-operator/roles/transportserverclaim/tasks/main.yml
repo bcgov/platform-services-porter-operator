@@ -111,6 +111,12 @@
     var: f5_ingress_port
     #verbosity: 3
 
+- name: 'DEBUG: mode and secondary_cluster_enabled'
+  ansible.builtin.debug: 
+    msg:
+      - "mode: {{ mode }}"
+      - "secondary_cluster_enabled: {{ secondary_cluster_enabled }}"
+
 - ansible.builtin.set_fact:
     secondary_cluster_enabled: true
     port_count: 1
@@ -118,6 +124,12 @@
     - secondary_cluster_name is defined
     - secondary_cluster_name != ""
     - mode != "standalone"
+
+- name: 'DEBUG2: mode and secondary_cluster_enabled'
+  ansible.builtin.debug: 
+    msg:
+      - "mode: {{ mode }}"
+      - "secondary_cluster_enabled: {{ secondary_cluster_enabled }}"
 
 # Check the Service type
 #   If NodePort
