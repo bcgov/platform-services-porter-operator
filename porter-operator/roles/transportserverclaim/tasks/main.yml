@@ -3,7 +3,7 @@
 - ansible.builtin.set_fact:
     min_port: "{{ lookup('env', 'MIN_PORT') }}"
     max_port: "{{ lookup('env', 'MAX_PORT') }}"
-    mode: "{{ mode | lower }}"
+    tsc_mode: "{{ mode | lower }}"
 
 # Parameters from the 'spec' of the TransportServerClaim are automatically
 # converted from camelCase to snake_case, e.g. servicePort --> service_port
@@ -15,7 +15,7 @@
     - 'Namespace: {{ ansible_operator_meta.namespace }}'
     - 'ServicePort: {{ service_port }}'
     - 'Monitor: {{ monitor }}'
-    - 'Mode: {{ mode }}'
+    - 'Mode: {{ tsc_mode }}'
 
 # If a specific port was requested, make sure it's valid or fall back to default
 # mode
@@ -111,10 +111,10 @@
     var: f5_ingress_port
     #verbosity: 3
 
-- name: 'DEBUG: mode and secondary_cluster_enabled'
+- name: 'DEBUG: tsc_mode and secondary_cluster_enabled'
   ansible.builtin.debug: 
     msg:
-      - "mode: {{ mode }}"
+      - "tsc_mode: {{ tsc_mode }}"
       - "secondary_cluster_enabled: {{ secondary_cluster_enabled }}"
 
 - ansible.builtin.set_fact:
@@ -123,12 +123,12 @@
   when: 
     - secondary_cluster_name is defined
     - secondary_cluster_name != ""
-    - mode != "standalone"
+    - tsc_mode != "standalone"
 
-- name: 'DEBUG2: mode and secondary_cluster_enabled'
+- name: 'DEBUG2: tsc_mode and secondary_cluster_enabled'
   ansible.builtin.debug: 
     msg:
-      - "mode: {{ mode }}"
+      - "tsc_mode: {{ tsc_mode }}"
       - "secondary_cluster_enabled: {{ secondary_cluster_enabled }}"
 
 # Check the Service type
