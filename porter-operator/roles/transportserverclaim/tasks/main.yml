@@ -3,6 +3,7 @@
 - ansible.builtin.set_fact:
     min_port: "{{ lookup('env', 'MIN_PORT') }}"
     max_port: "{{ lookup('env', 'MAX_PORT') }}"
+    mode: "{{ mode | lower }}"
 
 # Parameters from the 'spec' of the TransportServerClaim are automatically
 # converted from camelCase to snake_case, e.g. servicePort --> service_port
@@ -14,6 +15,7 @@
     - 'Namespace: {{ ansible_operator_meta.namespace }}'
     - 'ServicePort: {{ service_port }}'
     - 'Monitor: {{ monitor }}'
+    - 'Mode: {{ mode }}'
 
 # If a specific port was requested, make sure it's valid or fall back to default
 # mode
@@ -115,6 +117,7 @@
   when: 
     - secondary_cluster_name is defined
     - secondary_cluster_name != ""
+    - mode != "standalone"
 
 # Check the Service type
 #   If NodePort
