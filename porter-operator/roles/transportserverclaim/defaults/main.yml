@@ -16,4 +16,4 @@ override_service_port: false
 # in Gold like they can do in Silver.  This is for project sets that are just in
 # Gold and not in GoldDR, though any Gold project could set this to Standalone.
 # ------------------------------------------------------------------------------
-tsc_mode: CrossCluster
+mode: "{{ mode | default('CrossCluster') }}"
