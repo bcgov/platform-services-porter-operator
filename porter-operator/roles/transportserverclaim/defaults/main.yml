@@ -12,8 +12,3 @@ secondary_cluster_enabled: false
 use_requested_port: false
 override_service_port: false
 
-# Users may set .spec.mode to Standalone in order to get a single-cluster TSC
-# in Gold like they can do in Silver.  This is for project sets that are just in
-# Gold and not in GoldDR, though any Gold project could set this to Standalone.
-# ------------------------------------------------------------------------------
-mode: "{{ mode | default('CrossCluster') }}"
