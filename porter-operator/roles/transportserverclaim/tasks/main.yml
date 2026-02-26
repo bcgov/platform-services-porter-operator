@@ -3,7 +3,7 @@
 - ansible.builtin.set_fact:
     min_port: "{{ lookup('env', 'MIN_PORT') }}"
     max_port: "{{ lookup('env', 'MAX_PORT') }}"
-    tsc_mode: "{{ (mode | lower) | default('crosscluster') }}"
+    tsc_mode: "{{ (mode | default('CrossCluster')) | lower }}"
 
 # Parameters from the 'spec' of the TransportServerClaim are automatically
 # converted from camelCase to snake_case, e.g. servicePort --> service_port
