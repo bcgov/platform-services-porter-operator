@@ -123,13 +123,13 @@
     - secondary_cluster_exists
     - tsc_mode != "standalone"
 
-  # If a TSC were changed from default mode to Standalone, remove the matching
-  # Service from the other cluster.
-  - name: Set state to absent for resources in secondary cluster for standalone TSCs
-    set_fact:
-      secondary_state: "absent"
-    when:
-      - not secondary_cluster_enabled
+# If a TSC were changed from default mode to Standalone, remove the matching
+# Service from the other cluster.
+- name: Set state to absent for resources in secondary cluster for standalone TSCs
+  set_fact:
+    secondary_state: "absent"
+  when:
+    - not secondary_cluster_enabled
 
 # Check the Service type
 #   If NodePort
