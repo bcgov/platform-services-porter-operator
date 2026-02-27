@@ -129,7 +129,7 @@
     set_fact:
       secondary_state: "absent"
     when:
-      - ! secondary_cluster_enabled
+      - not secondary_cluster_enabled
 
 # Check the Service type
 #   If NodePort
