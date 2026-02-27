@@ -12,4 +12,5 @@ secondary_cluster_enabled: false
 secondary_state: "present"
 use_requested_port: false
 override_service_port: false
+port_count: 0
 
