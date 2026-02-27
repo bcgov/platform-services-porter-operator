@@ -228,30 +228,30 @@
       state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
 
-  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Endpoint - {{ state }}'
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Endpoint - {{ secondary_state }}'
     vars:
       cluster_name: '{{ secondary_cluster_name }}'
       f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
     community.kubernetes.k8s:
-      state: '{{ state }}'
+      state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
 
-  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ state }}'
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ secondary_state }}'
     vars:
       cluster_name: '{{ secondary_cluster_name }}'
     community.kubernetes.k8s:
-      state: '{{ state }}'
+      state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'Service.yaml.j2') }}"
 
   # As above, create a second Service having the port in the name if the target
   # Service has more than one port configured.
   # ---------------------------------------------------------------------------
-  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ state }}'
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ secondary_state }}'
     when: port_count | int > 1
     vars:
       cluster_name: '{{ secondary_cluster_name }}'
     community.kubernetes.k8s:
-      state: '{{ state }}'
+      state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'ServiceWithPort.yaml.j2') }}"
 
 # Update .status
