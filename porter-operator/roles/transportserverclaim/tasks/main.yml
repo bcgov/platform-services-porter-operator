@@ -123,8 +123,8 @@
     - secondary_cluster_exists
     - tsc_mode != "standalone"
 
-# If a TSC were changed from default mode to Standalone, remove the matching
-# Service from the other cluster.
+# If a TSC were changed from default mode to Standalone, remove resources
+# related to the secondary cluster.
 - name: Set state to absent for resources in secondary cluster for standalone TSCs
   set_fact:
     secondary_state: "absent"
@@ -158,7 +158,7 @@
 #   'state' is "absent"  when TSC is deleted
 #
 # However, if an existing TSC is changed from default mode (CrossCluster) to
-#   Standalone, then remove the resources from the secondary cluster.
+#   Standalone, then remove resources related to the secondary cluster.
 #
 # Using a template due to definition requirements (Can't template integers inline)
 #   https://github.com/operator-framework/operator-sdk/issues/1701
