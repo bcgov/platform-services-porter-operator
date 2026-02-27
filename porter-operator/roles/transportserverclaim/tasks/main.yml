@@ -38,9 +38,9 @@
     namespace: '{{ ansible_operator_meta.namespace }}'
   register: transport_server
 
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }}'
-  ansible.builtin.debug:
-    var: transport_server
+#- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }}'
+#  ansible.builtin.debug:
+#    var: transport_server
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
   ansible.builtin.set_fact: 
@@ -106,30 +106,30 @@
   ansible.builtin.set_fact:
     tsc_svc_port: "{{ service_port }}"
 
-- name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} show f5_ingress_port'
-  ansible.builtin.debug: 
-    var: f5_ingress_port
-    #verbosity: 3
-
-- name: 'DEBUG: tsc_mode and secondary_cluster_enabled'
-  ansible.builtin.debug: 
-    msg:
-      - "tsc_mode: {{ tsc_mode }}"
-      - "secondary_cluster_enabled: {{ secondary_cluster_enabled }}"
-
+# Even if there is a secondary cluster, it won't necessarily be used.
+# For example, a namespace in Gold w/o a matching GoldDR namespace
+# -------------------------------------------------------------------
 - ansible.builtin.set_fact:
-    secondary_cluster_enabled: true
-    port_count: 1
+    secondary_cluster_exists: true
   when: 
     - secondary_cluster_name is defined
     - secondary_cluster_name != ""
+
+- ansible.builtin.set_fact:
+    secondary_cluster_enabled: true
+    secondary_state: "{{ state }}"
+    port_count: 1
+  when: 
+    - secondary_cluster_exists
     - tsc_mode != "standalone"
 
-- name: 'DEBUG2: tsc_mode and secondary_cluster_enabled'
-  ansible.builtin.debug: 
-    msg:
-      - "tsc_mode: {{ tsc_mode }}"
-      - "secondary_cluster_enabled: {{ secondary_cluster_enabled }}"
+  # If a TSC were changed from default mode to Standalone, remove the matching
+  # Service from the other cluster.
+  - name: Set state to absent for resources in secondary cluster for standalone TSCs
+    set_fact:
+      secondary_state: "absent"
+    when:
+      - ! secondary_cluster_enabled
 
 # Check the Service type
 #   If NodePort
@@ -153,9 +153,16 @@
     primary_f5_ingress_ip: "{{ (target_service_info.resources and target_service_info.resources[0].spec.type == 'NodePort') | ternary(primary_f5_ingress_ip_nodeport, primary_f5_ingress_ip) }}"
     secondary_f5_ingress_ip: "{{ (target_service_info.resources and target_service_info.resources[0].spec.type == 'NodePort') | ternary(secondary_f5_ingress_ip_nodeport, secondary_f5_ingress_ip) }}"
 
-# Create TransportServer
-#   Using a template due to definition requirements (Can't template integers inline)
+# Manage TransportServer (create/update/delete, depending on action of TSC)
+#   'state' is "present" when TSC is created or updated
+#   'state' is "absent"  when TSC is deleted
+#
+# However, if an existing TSC is changed from default mode (CrossCluster) to
+#   Standalone, then remove the resources from the secondary cluster.
+#
+# Using a template due to definition requirements (Can't template integers inline)
 #   https://github.com/operator-framework/operator-sdk/issues/1701
+# --------------------------------------------------------------------------------
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster TransportServer - {{ state }}'
   vars:
     f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
@@ -164,30 +171,33 @@
     definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
 
 - name: Secondary cluster setup
-  when: secondary_cluster_enabled
+  when: secondary_cluster_exists
   block:
   - name: Set ports count
     set_fact:
       port_count: "{{ target_service_info.resources[0].spec.ports | length | int }}"
-    when: target_service_info.resources[0] is defined and target_service_info.resources[0].spec.ports is defined
+    when:
+      - target_service_info.resources[0] is defined
+      - target_service_info.resources[0].spec.ports is defined
+      - secondary_cluster_enabled
 
-  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Endpoint - {{ state }}'
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Endpoint - {{ secondary_state }}'
     vars:
       cluster_name: '{{ primary_cluster_name }}'
       f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
     community.kubernetes.k8s:
       api_key: '{{ secondary_cluster_api_key }}'
       host: '{{ secondary_cluster_api_host }}'
-      state: '{{ state }}'
+      state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
 
-  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ state }}'
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ secondary_state }}'
     vars:
       cluster_name: '{{ primary_cluster_name }}'
     community.kubernetes.k8s:
       api_key: '{{ secondary_cluster_api_key }}'
       host: '{{ secondary_cluster_api_host }}'
-      state: '{{ state }}'
+      state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'Service.yaml.j2') }}"
 
   # If the target Service has multiple ports configured, there could be two 
@@ -198,24 +208,24 @@
   # We do this in addition to the original Service template in order to maintain
   # backwards compatibility - at least for now.
   # ----------------------------------------------------------------------------
-  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ state }}'
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ secondary_state }}'
     when: port_count | int > 1 
     vars:
       cluster_name: '{{ primary_cluster_name }}'
     community.kubernetes.k8s:
       api_key: '{{ secondary_cluster_api_key }}'
       host: '{{ secondary_cluster_api_host }}'
-      state: '{{ state }}'
+      state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'ServiceWithPort.yaml.j2') }}"
 
   # BEGIN SECONDARY CLUSTER COMMS CONFIGURATION
-  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster TransportServer - {{ state }}'
+  - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster TransportServer - {{ secondary_state }}'
     vars:
       f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
     community.kubernetes.k8s:
       api_key: '{{ secondary_cluster_api_key }}'
       host: '{{ secondary_cluster_api_host }}'
-      state: '{{ state }}'
+      state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
 
   - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Endpoint - {{ state }}'
