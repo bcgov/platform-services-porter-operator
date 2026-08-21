@@ -31,7 +31,7 @@
     use_requested_port: true
 
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} get port if exists'
-  community.kubernetes.k8s_info:
+  kubernetes.core.k8s_info:
     api_version: cis.f5.com/v1
     kind: TransportServer
     name: '{{ ansible_operator_meta.name }}'
@@ -166,7 +166,7 @@
 - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster TransportServer - {{ state }}'
   vars:
     f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
-  community.kubernetes.k8s:
+  kubernetes.core.k8s:
     state: '{{ state }}'
     definition: "{{ lookup('template', 'TransportServer.yaml.j2') }}"
 
@@ -185,7 +185,7 @@
     vars:
       cluster_name: '{{ primary_cluster_name }}'
       f5_ingress_ip: '{{ primary_f5_ingress_ip }}'
-    community.kubernetes.k8s:
+    kubernetes.core.k8s:
       api_key: '{{ secondary_cluster_api_key }}'
       host: '{{ secondary_cluster_api_host }}'
       state: '{{ secondary_state }}'
@@ -194,7 +194,7 @@
   - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster Service - {{ secondary_state }}'
     vars:
       cluster_name: '{{ primary_cluster_name }}'
-    community.kubernetes.k8s:
+    kubernetes.core.k8s:
       api_key: '{{ secondary_cluster_api_key }}'
       host: '{{ secondary_cluster_api_host }}'
       state: '{{ secondary_state }}'
@@ -212,7 +212,7 @@
     when: port_count | int > 1 
     vars:
       cluster_name: '{{ primary_cluster_name }}'
-    community.kubernetes.k8s:
+    kubernetes.core.k8s:
       api_key: '{{ secondary_cluster_api_key }}'
       host: '{{ secondary_cluster_api_host }}'
       state: '{{ secondary_state }}'
@@ -222,7 +222,7 @@
   - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Secondary Cluster TransportServer - {{ secondary_state }}'
     vars:
       f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
-    community.kubernetes.k8s:
+    kubernetes.core.k8s:
       api_key: '{{ secondary_cluster_api_key }}'
       host: '{{ secondary_cluster_api_host }}'
       state: '{{ secondary_state }}'
@@ -232,14 +232,14 @@
     vars:
       cluster_name: '{{ secondary_cluster_name }}'
       f5_ingress_ip: '{{ secondary_f5_ingress_ip }}'
-    community.kubernetes.k8s:
+    kubernetes.core.k8s:
       state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'Endpoint.yaml.j2') }}"
 
   - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} Primary Cluster Service - {{ secondary_state }}'
     vars:
       cluster_name: '{{ secondary_cluster_name }}'
-    community.kubernetes.k8s:
+    kubernetes.core.k8s:
       state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'Service.yaml.j2') }}"
 
@@ -250,7 +250,7 @@
     when: port_count | int > 1
     vars:
       cluster_name: '{{ secondary_cluster_name }}'
-    community.kubernetes.k8s:
+    kubernetes.core.k8s:
       state: '{{ secondary_state }}'
       definition: "{{ lookup('template', 'ServiceWithPort.yaml.j2') }}"
 
