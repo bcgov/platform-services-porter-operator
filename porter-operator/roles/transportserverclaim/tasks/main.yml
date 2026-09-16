@@ -87,10 +87,9 @@
         url: http://localhost:10000/claim
       register: new_port_request
       
-    # new_port_request.json isn't actually json, it's just the key the response goes into..
     - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
       ansible.builtin.set_fact: 
-        f5_ingress_port: '{{ new_port_request.json }}'
+        f5_ingress_port: '{{ new_port_request }}'
 
 # If the TSC has '.spec.overrideServicePort: true', then use the port of the 
 # target Service by setting that value to 'tsc_svc_port'.
