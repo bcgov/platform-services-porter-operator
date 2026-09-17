@@ -86,6 +86,9 @@
       ansible.builtin.uri: 
         url: http://localhost:10000/claim
       register: new_port_request
+
+    - debug:
+        msg: "new_port_request: {{ new_port_request }}"
       
     - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
       ansible.builtin.set_fact: 
