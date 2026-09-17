@@ -85,6 +85,7 @@
     - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} request port from sidecar'
       ansible.builtin.uri: 
         url: http://localhost:10000/claim
+        return_content: true
       register: new_port_request
 
     - debug:
@@ -92,7 +93,7 @@
       
     - name: '[{{ ansible_operator_meta.namespace }}] - {{ ansible_operator_meta.name }} set f5_ingress_port'
       ansible.builtin.set_fact: 
-        f5_ingress_port: '{{ new_port_request }}'
+        f5_ingress_port: '{{ new_port_request.content | trim }}'
 
 # If the TSC has '.spec.overrideServicePort: true', then use the port of the 
 # target Service by setting that value to 'tsc_svc_port'.
